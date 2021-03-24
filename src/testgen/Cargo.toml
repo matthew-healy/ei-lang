@@ -1,0 +1,12 @@
+[package]
+name = "testgen"
+version = "0.1.0"
+authors = ["Matthew Healy <matthew@liamhealy.xyz>"]
+edition = "2018"
+
+[dependencies]
+syn = "1.0.64"
+quote = "1.0.9"
+
+[lib]
+proc_macro = true
