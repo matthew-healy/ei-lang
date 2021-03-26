@@ -1,7 +1,20 @@
 #[derive(Debug, PartialEq)]
-enum Token {
-    LeftBrace, // {
+enum TokenKind {
+    LeftBrace,  // {
     RightBrace, // }
+    LeftParen,  // (
+    RightParen, // )
+    Dot,        // .
+    Colon,      // :
+    SemiColon,  // ;
+    Bang,       // !
+    Plus,       // +
+    Minus,      // -
+    Star,       // *
+    Slash,      // /
+    Equal,      // =
+    Greater,    // >
+    Less,       // <
 }
 
 struct TokenStream<I> {
@@ -9,9 +22,9 @@ struct TokenStream<I> {
 }
 
 impl <I: Iterator<Item=char>> Iterator for TokenStream<I> {
-   type Item = Token;
+   type Item = TokenKind;
 
-   fn next(&mut self) -> Option<Token> {
+   fn next(&mut self) -> Option<TokenKind> {
        match self.src.next() {
            Some(c) => parse_token(c),
            None => None
@@ -19,10 +32,24 @@ impl <I: Iterator<Item=char>> Iterator for TokenStream<I> {
    }
 }
 
-fn parse_token(c: char) -> Option<Token> {
+fn parse_token(c: char) -> Option<TokenKind> {
+    use TokenKind::*;
     match c {
-        '{' => Some(Token::LeftBrace),
-        '}' => Some(Token::RightBrace),
+        '{' => Some(LeftBrace),
+        '}' => Some(RightBrace),
+        '(' => Some(LeftParen),
+        ')' => Some(RightParen),
+        '.' => Some(Dot),
+        ':' => Some(Colon),
+        ';' => Some(SemiColon),
+        '!' => Some(Bang),
+        '+' => Some(Plus),
+        '-' => Some(Minus),
+        '/' => Some(Slash),
+        '*' => Some(Star),
+        '=' => Some(Equal),
+        '>' => Some(Greater),
+        '<' => Some(Less),
         _ => None
     }
 }
@@ -33,6 +60,7 @@ fn token_stream<I>(src: I) -> TokenStream<I> where I: Iterator<Item=char> {
 
 #[cfg(test)]
 mod tests {
+    use test_utils::test_with_parameters;
     use super::*;
 
     #[test]
@@ -41,21 +69,29 @@ mod tests {
         assert_eq!(maybe_token, None);
     }
 
-    #[test]
-    fn can_lex_single_character_tokens() {
-        let tests: [(&str, Token); 2] = [
-            ("{", Token::LeftBrace),
-            ("}", Token::RightBrace),
-        ];
-        for test in &tests {
-           let input = test.0;
-           let expected = &test.1;
-
-           let maybe_token = token_stream(input.chars()).next();
-           match maybe_token {
-               Some(token) => assert_eq!(expected, &token, "Lexed incorrect token {:?} for input {:?}.", expected, token),
-               None => panic!("No token returned for input {:?}", input),
-           };
-        }
+    #[test_with_parameters(
+        [ input, expected              ]
+        [ "{"  , TokenKind::LeftBrace  ]
+        [ "}"  , TokenKind::RightBrace ]
+        [ "("  , TokenKind::LeftParen  ]
+        [ ")"  , TokenKind::RightParen ]
+        [ "."  , TokenKind::Dot        ]
+        [ ":"  , TokenKind::Colon      ]
+        [ ";"  , TokenKind::SemiColon  ]
+        [ "!"  , TokenKind::Bang       ]
+        [ "+"  , TokenKind::Plus       ]
+        [ "-"  , TokenKind::Minus      ]
+        [ "*"  , TokenKind::Star       ]
+        [ "/"  , TokenKind::Slash      ]
+        [ "="  , TokenKind::Equal      ]
+        [ ">"  , TokenKind::Greater    ]
+        [ "<"  , TokenKind::Less       ]
+    )]
+    fn can_lex_single_char_tokens(input: &str, expected: TokenKind) {
+        let maybe_token = token_stream(input.chars()).next();
+        match maybe_token {
+            Some(token) => assert_eq!(expected, token, "Lexed incorrect token {:?} for input {:?}.", expected, input),
+            None => panic!("No token returned for input {:?}", input),
+        };
     }
 }
