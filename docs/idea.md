@@ -34,17 +34,17 @@ IO.puts("Hello, world!");
 ### Immutable
 
 ```
-let x: String = "Hello"
-let y: Bool = true
-let z: Int = 500
+let x: String = "Hello";
+let y: Bool = true;
+let z: Int = 500;
 ```
 
 ### Mutable
 
 ```
-mut x: String = "Hello"
-mut y: Bool = true
-mut z: Int = 500
+mut x: String = "Hello";
+mut y: Bool = true;
+mut z: Int = 500;
 ```
 
 ## How are functions on values defined?
@@ -216,4 +216,3 @@ Todo:
 ## Notes
 
 `T checking R` should probably always a strict subtype of `T`, regardless of whether or not `R` actually filters out any values.
-
