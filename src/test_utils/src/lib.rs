@@ -12,7 +12,7 @@ pub fn test_with_parameters(attr: TokenStream, item: TokenStream) -> TokenStream
 
     if column_names.len() != test_fn.sig.inputs.len() {
         return (quote_spanned! {
-            names.span() =>
+            column_names.span() =>
             compile_error!("Number of parameters does not match the test function's arity.");
         }).into()
     }

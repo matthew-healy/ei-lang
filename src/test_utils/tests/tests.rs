@@ -1,4 +1,4 @@
-use testgen::test_with_parameters;
+use test_utils::test_with_parameters;
 
 #[test_with_parameters(
     [ input ]

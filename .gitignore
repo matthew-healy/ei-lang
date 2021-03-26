@@ -1,6 +1,9 @@
-src/**/Cargo.lock
-src/**/debug
-src/**/target/
+Cargo.lock
+debug/
+target/
+src/*/Cargo.lock
+src/*/debug/
+src/*/target/
 
 # rustfmt backup files
-**/*/rs.bs
+*/*/rs.bs

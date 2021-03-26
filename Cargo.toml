@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "src/lexer",
+    "src/test_utils"
+]
