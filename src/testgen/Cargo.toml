@@ -5,8 +5,11 @@ authors = ["Matthew Healy <matthew@liamhealy.xyz>"]
 edition = "2018"
 
 [dependencies]
-syn = "1.0.64"
 quote = "1.0.9"
+
+[dependencies.syn]
+version = "1.0.64"
+features = ["full"]
 
 [lib]
 proc_macro = true
