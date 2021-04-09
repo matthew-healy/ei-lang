@@ -173,7 +173,7 @@ enum GenderIdentity {
 ### In Functions
 
 ```
-fn divide(numerator: Int, denominator: Int checking NonZero) -> Int {
+fn divide(numerator: Int, denominator: non_zero Int) -> Int {
    numerator / denominator 
 }
 ```
@@ -181,37 +181,49 @@ fn divide(numerator: Int, denominator: Int checking NonZero) -> Int {
 ## How might we implement checks?
 
 ```
-typecheck NonEmpty against String { 
+check non_empty<String> {
     switch value {
-    "" => error,
+    "" => error, // Err, what are error and okay
     _  => okay
     }
 }
 
-typecheck StrictlyGreaterThan(lower: Int) against Int {
+check strictly_greater_than<Int>(lower: Int) {
     switch (value, lower) {
     succ(_), 0 => okay,
     0, succ(_) => error,
-    succ(val), succ(lwr) => check val StrictlyGreaterThan(lwr) // TODO: this syntax doesn't really work
+    // Assume check<T>(val: T, chk: Check<T>) somehow invokes a check.
+    succ(val), succ(lwr) => check(val, strictly_greater_than(lwr))
     } 
 }
 
-typecheck StrictlyLessThan(upper: Int) against Int {
+check strictly_less_than<Int>(upper: Int) {
     switch (value, upper) {
     0, succ(_) => okay,
     succ(_), 0 => error,
-    succ(val), succ(upr) => check val StrictlyLessThan(upr) // TODO: syntax
+    succ(val), succ(upr) => check(val, strictly_less_than(upr))
     }
 }
 
-typecheck StrictlyBetween(lower: Int, upper: Int) against Int {
-    // Assume CheckBoth has a signature like Check[T] -> Check[T] -> Check[T]
-    check value CheckBoth(StrictlyGreaterThan(lower), StrictlyLessThan(upper))
+check strictly_between<Int>(lower: Int, upper: Int) {
+    // Assume check_oth has a signature like
+    // checkBoth<T>(c1: Check<T>, c2: Check<T>) -> Check<T>
+    check(
+        value,
+        check_both(
+            strictly_GreaterThan(lower),
+            strictlyLessThan(upper)
+        )
+    )
 }
 ```
 
 Todo:
 - How should error messaging be defined?
+- How should constuctors work?
+- Can you add "static" behaviour to types? How? (e.g. "static func")
+- if statements?
+- while loops?
 
 ## Notes
 
