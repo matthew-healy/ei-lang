@@ -1,5 +1,19 @@
 use std::{iter::Peekable, str::Chars};
 
+use phf::phf_map;
+
+static KEYWORDS: phf::Map<&str, TokenKind> = phf_map! {
+    "let"       => TokenKind::Let,
+    "mut"       => TokenKind::Mut,
+    "fn"        => TokenKind::Fn,
+    "enum"      => TokenKind::Enum,
+    "record"    => TokenKind::Record,
+    "interface" => TokenKind::Interface,
+    "impl"      => TokenKind::Impl,
+    "check"     => TokenKind::Check,
+    "switch"    => TokenKind::Switch,
+};
+
 #[derive(Clone, Debug, PartialEq)]
 enum TokenKind {
     LeftBrace,    // {
@@ -24,6 +38,16 @@ enum TokenKind {
     RightArrow,   // ->
     And,          // &&
     Or,           // ||
+
+    Let,          // let
+    Mut,          // mut
+    Fn,           // fn
+    Enum,         // enum
+    Record,       // record
+    Interface,    // interface
+    Impl,         // impl
+    Check,        // check
+    Switch,       // switch
 
     Identifier,   // [a-zA-Z][_a-zA-Z0-9]*
 }
@@ -94,7 +118,10 @@ impl <'src> TokenStream<'src> {
             Some('|') if self.consume('|') => Some(Or),
             Some(c) if can_start_identifier(c) => {
                 self.advance_until(|c| !can_be_used_in_identifier(c));
-                Some(Identifier)
+                let kind = KEYWORDS.get(self.lexeme())
+                    .cloned()
+                    .unwrap_or(Identifier);
+                Some(kind)
             },
             _ => None
         }
@@ -145,36 +172,45 @@ mod tests {
     }
 
     #[test_with_parameters(
-        [ input, expected                ]
-        [ "{"  , TokenKind::LeftBrace    ]
-        [ "}"  , TokenKind::RightBrace   ]
-        [ "("  , TokenKind::LeftParen    ]
-        [ ")"  , TokenKind::RightParen   ]
-        [ "."  , TokenKind::Dot          ]
-        [ ":"  , TokenKind::Colon        ]
-        [ ";"  , TokenKind::SemiColon    ]
-        [ "!"  , TokenKind::Bang         ]
-        [ "+"  , TokenKind::Plus         ]
-        [ "-"  , TokenKind::Minus        ]
-        [ "*"  , TokenKind::Star         ]
-        [ "/"  , TokenKind::Slash        ]
-        [ "="  , TokenKind::Equal        ]
-        [ ">"  , TokenKind::Greater      ]
-        [ "<"  , TokenKind::Less         ]
-        [ "->" , TokenKind::RightArrow   ]
-        [ "<=" , TokenKind::LessEqual    ]
-        [ ">=" , TokenKind::GreaterEqual ]
-        [ "==" , TokenKind::EqualEqual   ]
-        [ "!=" , TokenKind::BangEqual    ]
-        [ "&&" , TokenKind::And          ]
-        [ "||" , TokenKind::Or           ]
+        [ input,       expected                ]
+        [ "{"        , TokenKind::LeftBrace    ]
+        [ "}"        , TokenKind::RightBrace   ]
+        [ "("        , TokenKind::LeftParen    ]
+        [ ")"        , TokenKind::RightParen   ]
+        [ "."        , TokenKind::Dot          ]
+        [ ":"        , TokenKind::Colon        ]
+        [ ";"        , TokenKind::SemiColon    ]
+        [ "!"        , TokenKind::Bang         ]
+        [ "+"        , TokenKind::Plus         ]
+        [ "-"        , TokenKind::Minus        ]
+        [ "*"        , TokenKind::Star         ]
+        [ "/"        , TokenKind::Slash        ]
+        [ "="        , TokenKind::Equal        ]
+        [ ">"        , TokenKind::Greater      ]
+        [ "<"        , TokenKind::Less         ]
+        [ "->"       , TokenKind::RightArrow   ]
+        [ "<="       , TokenKind::LessEqual    ]
+        [ ">="       , TokenKind::GreaterEqual ]
+        [ "=="       , TokenKind::EqualEqual   ]
+        [ "!="       , TokenKind::BangEqual    ]
+        [ "&&"       , TokenKind::And          ]
+        [ "||"       , TokenKind::Or           ]
+        [ "let"      , TokenKind::Let          ]
+        [ "mut"      , TokenKind::Mut          ]
+        [ "fn"       , TokenKind::Fn           ]
+        [ "enum"     , TokenKind::Enum         ]
+        [ "record"   , TokenKind::Record       ]
+        [ "interface", TokenKind::Interface    ]
+        [ "impl"     , TokenKind::Impl         ]
+        [ "check"    , TokenKind::Check        ]
+        [ "switch"   , TokenKind::Switch       ]
     )]
     fn can_lex_static_tokens(input: &str, expected: TokenKind) {
         let maybe_token = token_stream(input).next();
         match maybe_token {
             Some(token) => assert_eq!(
-                Token { kind: expected.clone(), lexeme: input }, token,
-                "Lexed incorrect token {:?} for input {:?}.", expected, input
+                Token { kind: expected, lexeme: input }, token,
+                "Lexed incorrect token {:?} for input {:?}.", token.kind, input
             ),
             None => panic!("No token returned for input {:?}", input),
         };
