@@ -1,6 +1,6 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, str::Chars};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum TokenKind {
     LeftBrace,    // {
     RightBrace,   // }
@@ -24,24 +24,51 @@ enum TokenKind {
     RightArrow,   // ->
     And,          // &&
     Or,           // ||
+
+    Identifier,   // [a-zA-Z][_a-zA-Z0-9]*
 }
 
-struct TokenStream<I: Iterator<Item=char>> {
-    src: Peekable<I>,
+#[derive(Debug, PartialEq)]
+struct Token<'src> {
+    kind: TokenKind,
+    lexeme: &'src str,
 }
 
-impl <I: Iterator<Item=char>> Iterator for TokenStream<I> {
-    type Item = TokenKind;
-
-    fn next(&mut self) -> Option<TokenKind> {
-        self.next_token_kind()
+fn token_stream<'src>(src: &'src str) -> TokenStream<'src> {
+    TokenStream {
+        raw: src,
+        src: src.chars().peekable(),
+        current_token_size: 0,
+        current_token_start: 0,
     }
 }
 
-impl <I: Iterator<Item=char>> TokenStream<I> {
+struct TokenStream<'src> {
+    raw: &'src str,
+    src: Peekable<Chars<'src>>,
+    current_token_size: usize,
+    current_token_start: usize,
+}
+
+impl <'src> Iterator for TokenStream<'src> {
+    type Item = Token<'src>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_token_kind()
+            .map(|kind| Token { kind, lexeme: self.lexeme() })
+    }
+}
+
+impl <'src> TokenStream<'src> {
     fn next_token_kind(&mut self) -> Option<TokenKind> {
         use TokenKind::*;
+
+        self.current_token_start = self.current_token_start + self.current_token_size;
+        self.current_token_size = 0;
+
         let next = self.src.next();
+        self.current_token_size += 1;
+
         match next {
             Some('{') => Some(LeftBrace),
             Some('}') => Some(RightBrace),
@@ -65,6 +92,10 @@ impl <I: Iterator<Item=char>> TokenStream<I> {
             Some('<') => Some(Less),
             Some('&') if self.consume('&') => Some(And),
             Some('|') if self.consume('|') => Some(Or),
+            Some(c) if can_start_identifier(c) => {
+                self.advance_until(|c| !can_be_used_in_identifier(c));
+                Some(Identifier)
+            },
             _ => None
         }
     }
@@ -72,13 +103,34 @@ impl <I: Iterator<Item=char>> TokenStream<I> {
     fn consume(&mut self, c: char) -> bool {
         if self.src.peek() == Some(&c) {
            self.src.next();
+           self.current_token_size += 1;
            true
         } else { false }
     }
+
+    fn lexeme(&self) -> &'src str {
+        let token_end = self.current_token_start + self.current_token_size;
+        &self.raw[self.current_token_start..token_end]
+    }
+
+    fn advance_until(
+        &mut self,
+        should_stop: impl Fn(char) -> bool
+    ) {
+        let is_done = |nxt: Option<&char>| nxt.is_none() || should_stop(*nxt.unwrap());
+        while !is_done(self.src.peek()) {
+            self.src.next();
+            self.current_token_size += 1;
+        }
+    }
 }
 
-fn token_stream<I: Iterator<Item=char>>(src: I) -> TokenStream<I> {
-    TokenStream { src: src.peekable() }
+fn can_be_used_in_identifier(c: char) -> bool {
+    can_start_identifier(c) || c.is_digit(10)
+}
+
+fn can_start_identifier(c: char) -> bool {
+    c.is_ascii_alphabetic() || c == '_'
 }
 
 #[cfg(test)]
@@ -88,7 +140,7 @@ mod tests {
 
     #[test]
     fn empty_source_returns_no_tokens() {
-        let maybe_token = token_stream("".chars()).next();
+        let maybe_token = token_stream("").next();
         assert_eq!(maybe_token, None);
     }
 
@@ -118,13 +170,35 @@ mod tests {
         [ "||" , TokenKind::Or           ]
     )]
     fn can_lex_static_tokens(input: &str, expected: TokenKind) {
-        let maybe_token = token_stream(input.chars()).next();
+        let maybe_token = token_stream(input).next();
         match maybe_token {
             Some(token) => assert_eq!(
-                expected, token,
+                Token { kind: expected.clone(), lexeme: input }, token,
                 "Lexed incorrect token {:?} for input {:?}.", expected, input
             ),
             None => panic!("No token returned for input {:?}", input),
         };
+    }
+
+    #[test_with_parameters(
+        [ input  , expected_ident ]
+        [ "a"    , "a"            ]
+        [ "eggs" , "eggs"         ]
+        [ "_name", "_name"        ]
+        [ "d1m12", "d1m12"        ]
+    )]
+    fn captures_identifier_lexemes(input: &str, expected: &str) {
+        let maybe_token = token_stream(input).next();
+        match maybe_token {
+            Some(token) => assert_eq!(
+                ident_token(expected), token,
+                "Lexed incorrect token {:?} for input {:?}", expected, input
+            ),
+            None => panic!("No token returned for input {:?}", input),
+        }
+    }
+
+    fn ident_token(lexeme: &str) -> Token {
+        Token { kind: TokenKind::Identifier, lexeme }
     }
 }
