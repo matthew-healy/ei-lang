@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 ei_lexer = { path = "../ei_lexer" }
+
+[dev-dependencies]
+test_utils = { path = "../test_utils" }

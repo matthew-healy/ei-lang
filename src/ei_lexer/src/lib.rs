@@ -56,7 +56,7 @@ pub enum TokenKind {
 
 #[derive(Debug, PartialEq)]
 pub struct Token<'src> {
-    kind: TokenKind,
+    pub kind: TokenKind,
     lexeme: &'src str,
 }
 
