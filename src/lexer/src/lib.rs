@@ -11,7 +11,7 @@ static KEYWORDS: phf::Map<&str, TokenKind> = phf_map! {
     "interface" => TokenKind::Interface,
     "impl"      => TokenKind::Impl,
     "check"     => TokenKind::Check,
-    "switch"    => TokenKind::Switch,
+    "match"     => TokenKind::Match,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -39,17 +39,17 @@ enum TokenKind {
     And,          // &&
     Or,           // ||
 
-    Let,          // let
-    Mut,          // mut
-    Fn,           // fn
-    Enum,         // enum
-    Record,       // record
-    Interface,    // interface
-    Impl,         // impl
-    Check,        // check
-    Switch,       // switch
+    Let,       // let
+    Mut,       // mut
+    Fn,        // fn
+    Enum,      // enum
+    Record,    // record
+    Interface, // interface
+    Impl,      // impl
+    Check,     // check
+    Match,     // match
 
-    Identifier,   // [a-zA-Z][_a-zA-Z0-9]*
+    Identifier, // [a-zA-Z][_a-zA-Z0-9]*
 }
 
 #[derive(Debug, PartialEq)]
@@ -203,7 +203,7 @@ mod tests {
         [ "interface", TokenKind::Interface    ]
         [ "impl"     , TokenKind::Impl         ]
         [ "check"    , TokenKind::Check        ]
-        [ "switch"   , TokenKind::Switch       ]
+        [ "match"    , TokenKind::Match        ]
     )]
     fn can_lex_static_tokens(input: &str, expected: TokenKind) {
         let maybe_token = token_stream(input).next();
