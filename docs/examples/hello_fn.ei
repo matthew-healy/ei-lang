@@ -1,0 +1,5 @@
+fn hello(name: String) -> String {
+    "Hello, ".appending(name)
+}
+
+IO.print_ln(hello("Ei"))
