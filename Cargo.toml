@@ -2,5 +2,6 @@
 
 members = [
     "src/lexer",
+    "src/parser",
     "src/test_utils"
 ]
