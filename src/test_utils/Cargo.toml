@@ -2,7 +2,7 @@
 name = "test_utils"
 version = "0.1.0"
 authors = ["Matthew Healy <matthew@liamhealy.xyz>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 quote = "1.0.9"
