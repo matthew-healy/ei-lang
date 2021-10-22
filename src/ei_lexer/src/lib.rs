@@ -15,7 +15,7 @@ static KEYWORDS: phf::Map<&str, TokenKind> = phf_map! {
 };
 
 #[derive(Clone, Debug, PartialEq)]
-enum TokenKind {
+pub enum TokenKind {
     LeftBrace,    // {
     RightBrace,   // }
     LeftParen,    // (
@@ -49,16 +49,18 @@ enum TokenKind {
     Check,     // check
     Match,     // match
 
-    Identifier, // [a-zA-Z][_a-zA-Z0-9]*
+    Identifier, // [_a-zA-Z][_a-zA-Z0-9]*
+
+    String(String),
 }
 
 #[derive(Debug, PartialEq)]
-struct Token<'src> {
+pub struct Token<'src> {
     kind: TokenKind,
     lexeme: &'src str,
 }
 
-fn token_stream<'src>(src: &'src str) -> TokenStream<'src> {
+pub fn token_stream<'src>(src: &'src str) -> TokenStream<'src> {
     TokenStream {
         raw: src,
         src: src.chars().peekable(),
@@ -67,7 +69,7 @@ fn token_stream<'src>(src: &'src str) -> TokenStream<'src> {
     }
 }
 
-struct TokenStream<'src> {
+pub struct TokenStream<'src> {
     raw: &'src str,
     src: Peekable<Chars<'src>>,
     current_token_size: usize,
@@ -118,6 +120,10 @@ impl<'src> TokenStream<'src> {
             Some('<') => Some(Less),
             Some('&') if self.consume('&') => Some(And),
             Some('|') if self.consume('|') => Some(Or),
+            Some('"') => {
+                self.advance_until_match('=');
+                Some(String(self.lexeme().trim_matches('"').to_string()))
+            }
             Some(c) if can_start_identifier(c) => {
                 self.advance_until(|c| !can_be_used_in_identifier(c));
                 let kind = KEYWORDS.get(self.lexeme()).cloned().unwrap_or(Identifier);
@@ -148,6 +154,10 @@ impl<'src> TokenStream<'src> {
             self.src.next();
             self.current_token_size += 1;
         }
+    }
+
+    fn advance_until_match(&mut self, sought: char) {
+        self.advance_until(|c| c == sought)
     }
 }
 
@@ -207,15 +217,13 @@ mod tests {
     fn can_lex_static_tokens(input: &str, expected: TokenKind) {
         let maybe_token = token_stream(input).next();
         match maybe_token {
-            Some(token) => assert_eq!(
-                Token {
+            Some(token) => util::assert_eq_tokens(
+                &Token {
                     kind: expected,
-                    lexeme: input
+                    lexeme: input,
                 },
-                token,
-                "Lexed incorrect token {:?} for input {:?}.",
-                token.kind,
-                input
+                &token,
+                input,
             ),
             None => panic!("No token returned for input {:?}", input),
         };
@@ -232,21 +240,50 @@ mod tests {
     fn captures_identifier_lexemes(input: &str, expected: &str) {
         let maybe_token = token_stream(input).next();
         match maybe_token {
-            Some(token) => assert_eq!(
-                ident_token(expected),
-                token,
-                "Lexed incorrect token {:?} for input {:?}",
-                expected,
-                input
-            ),
+            Some(token) => util::assert_eq_tokens(&util::ident_token(expected), &token, input),
             None => panic!("No token returned for input {:?}", input),
         }
     }
 
-    fn ident_token(lexeme: &str) -> Token {
-        Token {
-            kind: TokenKind::Identifier,
-            lexeme,
+    #[test_with_parameters(
+        [ input        , expected_literal ]
+        [ "\"\""       , ""               ]
+        [ "\"a\""      , "a"              ]
+        [ "\"abacus\"" , "abacus"         ]
+    )]
+    fn can_lex_string_literals(input: &str, expected: &str) {
+        let maybe_token = token_stream(input).next();
+        match maybe_token {
+            Some(token) => {
+                util::assert_eq_tokens(&util::string_token(expected, input), &token, input)
+            }
+            None => panic!("No token returned for input {:?}", input),
+        }
+    }
+
+    mod util {
+        use super::super::*;
+
+        pub(crate) fn assert_eq_tokens(expected: &Token, actual: &Token, input: &str) {
+            assert_eq!(
+                expected, actual,
+                "Lexed incorrect token {:?} for input {:?}. Expected: {:?}.",
+                actual, input, expected
+            )
+        }
+
+        pub(crate) fn ident_token(lexeme: &str) -> Token {
+            Token {
+                kind: TokenKind::Identifier,
+                lexeme,
+            }
+        }
+
+        pub(crate) fn string_token<S: Into<String>>(value: S, lexeme: &str) -> Token {
+            Token {
+                kind: TokenKind::String(value.into()),
+                lexeme: lexeme,
+            }
         }
     }
 }
