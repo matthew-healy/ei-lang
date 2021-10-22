@@ -206,7 +206,7 @@ check strictly_less_than<Int>(upper: Int) {
 }
 
 check strictly_between<Int>(lower: Int, upper: Int) {
-    // Assume check_oth has a signature like
+    // Assume check_both has a signature like
     // checkBoth<T>(c1: Check<T>, c2: Check<T>) -> Check<T>
     check(
         value,
