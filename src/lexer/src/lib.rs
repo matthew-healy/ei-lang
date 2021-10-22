@@ -74,16 +74,18 @@ struct TokenStream<'src> {
     current_token_start: usize,
 }
 
-impl <'src> Iterator for TokenStream<'src> {
+impl<'src> Iterator for TokenStream<'src> {
     type Item = Token<'src>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.next_token_kind()
-            .map(|kind| Token { kind, lexeme: self.lexeme() })
+        self.next_token_kind().map(|kind| Token {
+            kind,
+            lexeme: self.lexeme(),
+        })
     }
 }
 
-impl <'src> TokenStream<'src> {
+impl<'src> TokenStream<'src> {
     fn next_token_kind(&mut self) -> Option<TokenKind> {
         use TokenKind::*;
 
@@ -118,21 +120,21 @@ impl <'src> TokenStream<'src> {
             Some('|') if self.consume('|') => Some(Or),
             Some(c) if can_start_identifier(c) => {
                 self.advance_until(|c| !can_be_used_in_identifier(c));
-                let kind = KEYWORDS.get(self.lexeme())
-                    .cloned()
-                    .unwrap_or(Identifier);
+                let kind = KEYWORDS.get(self.lexeme()).cloned().unwrap_or(Identifier);
                 Some(kind)
-            },
-            _ => None
+            }
+            _ => None,
         }
     }
 
     fn consume(&mut self, c: char) -> bool {
         if self.src.peek() == Some(&c) {
-           self.src.next();
-           self.current_token_size += 1;
-           true
-        } else { false }
+            self.src.next();
+            self.current_token_size += 1;
+            true
+        } else {
+            false
+        }
     }
 
     fn lexeme(&self) -> &'src str {
@@ -140,10 +142,7 @@ impl <'src> TokenStream<'src> {
         &self.raw[self.current_token_start..token_end]
     }
 
-    fn advance_until(
-        &mut self,
-        should_stop: impl Fn(char) -> bool
-    ) {
+    fn advance_until(&mut self, should_stop: impl Fn(char) -> bool) {
         let is_done = |nxt: Option<&char>| nxt.is_none() || should_stop(*nxt.unwrap());
         while !is_done(self.src.peek()) {
             self.src.next();
@@ -162,8 +161,8 @@ fn can_start_identifier(c: char) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use test_utils::test_with_parameters;
     use super::*;
+    use test_utils::test_with_parameters;
 
     #[test]
     fn empty_source_returns_no_tokens() {
@@ -209,32 +208,45 @@ mod tests {
         let maybe_token = token_stream(input).next();
         match maybe_token {
             Some(token) => assert_eq!(
-                Token { kind: expected, lexeme: input }, token,
-                "Lexed incorrect token {:?} for input {:?}.", token.kind, input
+                Token {
+                    kind: expected,
+                    lexeme: input
+                },
+                token,
+                "Lexed incorrect token {:?} for input {:?}.",
+                token.kind,
+                input
             ),
             None => panic!("No token returned for input {:?}", input),
         };
     }
 
     #[test_with_parameters(
-        [ input  , expected_ident ]
-        [ "a"    , "a"            ]
-        [ "eggs" , "eggs"         ]
-        [ "_name", "_name"        ]
-        [ "d1m12", "d1m12"        ]
+        [ input        , expected_ident ]
+        [ "a"          , "a"            ]
+        [ "eggs"       , "eggs"         ]
+        [ "_name"      , "_name"        ]
+        [ "d1m12"      , "d1m12"        ]
+        [ "hello_world", "hello_world"  ]
     )]
     fn captures_identifier_lexemes(input: &str, expected: &str) {
         let maybe_token = token_stream(input).next();
         match maybe_token {
             Some(token) => assert_eq!(
-                ident_token(expected), token,
-                "Lexed incorrect token {:?} for input {:?}", expected, input
+                ident_token(expected),
+                token,
+                "Lexed incorrect token {:?} for input {:?}",
+                expected,
+                input
             ),
             None => panic!("No token returned for input {:?}", input),
         }
     }
 
     fn ident_token(lexeme: &str) -> Token {
-        Token { kind: TokenKind::Identifier, lexeme }
+        Token {
+            kind: TokenKind::Identifier,
+            lexeme,
+        }
     }
 }
