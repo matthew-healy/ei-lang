@@ -145,7 +145,8 @@ impl<'src> TokenStream<'src> {
     // Assumes we have already read a '"' and then
     // keeps reading until it finds another '"'.
     fn consume_string(&mut self) -> TokenKind {
-        self.consume_until_match('=');
+        self.consume_until_match('"');
+        self.consume('"');
         TokenKind::String(self.lexeme().trim_matches('"').to_string())
     }
 
