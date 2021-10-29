@@ -51,13 +51,25 @@ pub enum TokenKind {
 
     Identifier, // [_a-zA-Z][_a-zA-Z0-9]*
 
-    String(String),
+    String(String), // \".*\"
+
+    Unknown, // anything else
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Token<'src> {
+pub struct Token {
     pub kind: TokenKind,
-    lexeme: &'src str,
+    // TODO: make this a pointer/ref to a symbol table entry.
+    lexeme: String,
+}
+
+impl Token {
+    pub fn identifier<S: Into<String>>(s: S) -> Token {
+        Token {
+            kind: TokenKind::Identifier,
+            lexeme: s.into(),
+        }
+    }
 }
 
 pub fn token_stream<'src>(src: &'src str) -> TokenStream<'src> {
@@ -77,60 +89,72 @@ pub struct TokenStream<'src> {
 }
 
 impl<'src> Iterator for TokenStream<'src> {
-    type Item = Token<'src>;
+    type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token_kind().map(|kind| Token {
             kind,
-            lexeme: self.lexeme(),
+            lexeme: self.lexeme().to_string(),
         })
     }
 }
 
 impl<'src> TokenStream<'src> {
     fn next_token_kind(&mut self) -> Option<TokenKind> {
-        use TokenKind::*;
-
         self.current_token_start = self.current_token_start + self.current_token_size;
         self.current_token_size = 0;
+
+        self.consume_until(|c| !c.is_whitespace());
 
         let next = self.src.next();
         self.current_token_size += 1;
 
-        match next {
-            Some('{') => Some(LeftBrace),
-            Some('}') => Some(RightBrace),
-            Some('(') => Some(LeftParen),
-            Some(')') => Some(RightParen),
-            Some('.') => Some(Dot),
-            Some(':') => Some(Colon),
-            Some(';') => Some(SemiColon),
-            Some('!') if self.consume('=') => Some(BangEqual),
-            Some('!') => Some(Bang),
-            Some('+') => Some(Plus),
-            Some('-') if self.consume('>') => Some(RightArrow),
-            Some('-') => Some(Minus),
-            Some('/') => Some(Slash),
-            Some('*') => Some(Star),
-            Some('=') if self.consume('=') => Some(EqualEqual),
-            Some('=') => Some(Equal),
-            Some('>') if self.consume('=') => Some(GreaterEqual),
-            Some('>') => Some(Greater),
-            Some('<') if self.consume('=') => Some(LessEqual),
-            Some('<') => Some(Less),
-            Some('&') if self.consume('&') => Some(And),
-            Some('|') if self.consume('|') => Some(Or),
-            Some('"') => {
-                self.advance_until_match('=');
-                Some(String(self.lexeme().trim_matches('"').to_string()))
+        next.map(|nxt| {
+            use TokenKind::*;
+
+            match nxt {
+                '{' => LeftBrace,
+                '}' => RightBrace,
+                '(' => LeftParen,
+                ')' => RightParen,
+                '.' => Dot,
+                ':' => Colon,
+                ';' => SemiColon,
+                '!' if self.consume('=') => BangEqual,
+                '!' => Bang,
+                '+' => Plus,
+                '-' if self.consume('>') => RightArrow,
+                '-' => Minus,
+                '/' => Slash,
+                '*' => Star,
+                '=' if self.consume('=') => EqualEqual,
+                '=' => Equal,
+                '>' if self.consume('=') => GreaterEqual,
+                '>' => Greater,
+                '<' if self.consume('=') => LessEqual,
+                '<' => Less,
+                '&' if self.consume('&') => And,
+                '|' if self.consume('|') => Or,
+                '"' => self.consume_string(),
+                c if can_start_identifier(c) => self.consume_keyword_or_identifier(),
+                _ => Unknown,
             }
-            Some(c) if can_start_identifier(c) => {
-                self.advance_until(|c| !can_be_used_in_identifier(c));
-                let kind = KEYWORDS.get(self.lexeme()).cloned().unwrap_or(Identifier);
-                Some(kind)
-            }
-            _ => None,
-        }
+        })
+    }
+
+    // Assumes we have already read a '"' and then
+    // keeps reading until it finds another '"'.
+    fn consume_string(&mut self) -> TokenKind {
+        self.consume_until_match('=');
+        TokenKind::String(self.lexeme().trim_matches('"').to_string())
+    }
+
+    fn consume_keyword_or_identifier(&mut self) -> TokenKind {
+        self.consume_until(cannot_be_used_in_identifier);
+        KEYWORDS
+            .get(self.lexeme())
+            .cloned()
+            .unwrap_or(TokenKind::Identifier)
     }
 
     fn consume(&mut self, c: char) -> bool {
@@ -148,7 +172,7 @@ impl<'src> TokenStream<'src> {
         &self.raw[self.current_token_start..token_end]
     }
 
-    fn advance_until(&mut self, should_stop: impl Fn(char) -> bool) {
+    fn consume_until(&mut self, should_stop: impl Fn(char) -> bool) {
         let is_done = |nxt: Option<&char>| nxt.is_none() || should_stop(*nxt.unwrap());
         while !is_done(self.src.peek()) {
             self.src.next();
@@ -156,13 +180,13 @@ impl<'src> TokenStream<'src> {
         }
     }
 
-    fn advance_until_match(&mut self, sought: char) {
-        self.advance_until(|c| c == sought)
+    fn consume_until_match(&mut self, sought: char) {
+        self.consume_until(|c| c == sought)
     }
 }
 
-fn can_be_used_in_identifier(c: char) -> bool {
-    can_start_identifier(c) || c.is_digit(10)
+fn cannot_be_used_in_identifier(c: char) -> bool {
+    !(can_start_identifier(c) || c.is_digit(10))
 }
 
 fn can_start_identifier(c: char) -> bool {
@@ -178,6 +202,15 @@ mod tests {
     fn empty_source_returns_no_tokens() {
         let maybe_token = token_stream("").next();
         assert_eq!(maybe_token, None);
+    }
+
+    #[test]
+    fn whitespace_is_skipped() {
+        use TokenKind::*;
+        let input = "{    + \n  }\n   -";
+        let tokens = token_stream(input).map(|t| t.kind).collect::<Vec<_>>();
+        let expected = vec![LeftBrace, Plus, RightBrace, Minus];
+        assert_eq!(expected, tokens);
     }
 
     #[test_with_parameters(
@@ -220,7 +253,7 @@ mod tests {
             Some(token) => util::assert_eq_tokens(
                 &Token {
                     kind: expected,
-                    lexeme: input,
+                    lexeme: input.to_string(),
                 },
                 &token,
                 input,
@@ -275,14 +308,14 @@ mod tests {
         pub(crate) fn ident_token(lexeme: &str) -> Token {
             Token {
                 kind: TokenKind::Identifier,
-                lexeme,
+                lexeme: lexeme.to_string(),
             }
         }
 
         pub(crate) fn string_token<S: Into<String>>(value: S, lexeme: &str) -> Token {
             Token {
                 kind: TokenKind::String(value.into()),
-                lexeme: lexeme,
+                lexeme: lexeme.to_string(),
             }
         }
     }

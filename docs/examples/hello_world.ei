@@ -1,1 +1,1 @@
-IO.print_ln("Hello, World")
+print_ln("Hello, World")
