@@ -15,7 +15,7 @@ enum Stmt {
 enum Expr {
     Identifier { name: Token },
     Literal { l: Literal },
-    FunctionApplication { callee: Box<Expr> },
+    FunctionApplication { callee: Box<Expr>, args: Vec<Expr> },
 }
 
 #[derive(Debug, PartialEq)]
@@ -79,17 +79,31 @@ impl<T: Iterator<Item = Token>> Parser<Peekable<T>> {
     fn expression(&mut self) -> Option<Expr> {
         match self.primary() {
             Some(e) if self.match_single(TokenKind::LeftParen).is_some() => {
-                if self.match_single(TokenKind::RightParen).is_some() {
-                    Some(Expr::FunctionApplication {
-                        callee: Box::new(e),
-                    })
-                } else {
-                    panic!("Unmatched parens")
-                }
+                self.function_application_args(e)
             }
             Some(e) => Some(e),
             None => None,
         }
+    }
+
+    /// Assumes that we have already successfully parsed an opening paren,
+    /// and proceeds to parse the argument list.
+    fn function_application_args(&mut self, callee: Expr) -> Option<Expr> {
+        let mut args = Vec::new();
+
+        if !self.check_next(TokenKind::RightParen) {
+            // TODO: handle more than one argument
+            args.push(self.expression()?);
+        }
+
+        let paren = self.match_single(TokenKind::RightParen)?;
+
+        // TODO: is a jvm style max arg limit necessary?
+
+        Some(Expr::FunctionApplication {
+            callee: Box::new(callee),
+            args,
+        })
     }
 
     fn primary(&mut self) -> Option<Expr> {
@@ -164,6 +178,25 @@ mod tests {
                     callee: Box::new(Expr::Identifier {
                         name: Token::identifier("do_something"),
                     }),
+                    args: Vec::new(),
+                },
+            }],
+        };
+        assert_eq!(expected, ast)
+    }
+
+    #[test]
+    fn function_application_single_arg() {
+        let ast = parse(token_stream("do_something(\"a\");"));
+        let expected = UntypedProgram {
+            stmts: vec![Stmt::Expr {
+                e: Expr::FunctionApplication {
+                    callee: Box::new(Expr::Identifier {
+                        name: Token::identifier("do_something"),
+                    }),
+                    args: vec![Expr::Literal {
+                        l: Literal::new("a"),
+                    }],
                 },
             }],
         };
