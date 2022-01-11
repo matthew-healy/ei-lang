@@ -3,5 +3,4 @@
 members = [
     "src/ei_lexer",
     "src/ei_parser",
-    "src/test_utils"
 ]

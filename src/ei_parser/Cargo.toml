@@ -9,4 +9,4 @@ edition = "2021"
 ei_lexer = { path = "../ei_lexer" }
 
 [dev-dependencies]
-test_utils = { path = "../test_utils" }
+test_with_parameters = "0.1.0"

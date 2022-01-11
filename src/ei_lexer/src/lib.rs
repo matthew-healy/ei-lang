@@ -197,7 +197,7 @@ fn can_start_identifier(c: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_utils::test_with_parameters;
+    use test_with_parameters::*;
 
     #[test]
     fn empty_source_returns_no_tokens() {

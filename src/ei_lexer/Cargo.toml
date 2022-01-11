@@ -10,4 +10,4 @@ edition = "2021"
 phf = { version = "0.8", features = ["macros"] }
 
 [dev-dependencies]
-test_utils = { path = "../test_utils" }
+test_with_parameters = "0.1.0"

@@ -116,7 +116,7 @@ impl<T: Iterator<Item = Token>> Parser<Peekable<T>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_utils::test_with_parameters;
+    use test_with_parameters::*;
 
     #[test]
     fn empty_token_stream_returns_empty_ast() {
