@@ -18,6 +18,12 @@ enum Expr {
     FunctionApplication { callee: Box<Expr>, args: Vec<Expr> },
 }
 
+impl<T: Into<Literal>> From<T> for Expr {
+    fn from(l: T) -> Expr {
+        Expr::Literal { l: l.into() }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 enum Literal {
     String(String),
@@ -92,11 +98,13 @@ impl<T: Iterator<Item = Token>> Parser<Peekable<T>> {
         let mut args = Vec::new();
 
         if !self.check_next(TokenKind::RightParen) {
-            // TODO: handle more than one argument
             args.push(self.expression()?);
+            while self.match_single(TokenKind::Comma).is_some() {
+                args.push(self.expression()?);
+            }
         }
 
-        let paren = self.match_single(TokenKind::RightParen)?;
+        self.match_single(TokenKind::RightParen)?;
 
         // TODO: is a jvm style max arg limit necessary?
 
@@ -169,34 +177,21 @@ mod tests {
         assert_eq!(expected, ast)
     }
 
-    #[test]
-    fn function_application_no_args() {
-        let ast = parse(token_stream("do_something();"));
+    #[test_with_parameters(
+        [ input              , identifier    , args                         ]
+        [ "do_something();"  , "do_something", vec![]                       ]
+        [ "calculate(\"a\");", "calculate"   , vec!["a".into()]             ]
+        [ "a(\"b\", \"c\");" , "a"           , vec!["b".into(), "c".into()] ]
+    )]
+    fn function_application(input: &str, identifier: &str, args: Vec<Expr>) {
+        let ast = parse(token_stream(input));
         let expected = UntypedProgram {
             stmts: vec![Stmt::Expr {
                 e: Expr::FunctionApplication {
                     callee: Box::new(Expr::Identifier {
-                        name: Token::identifier("do_something"),
+                        name: Token::identifier(identifier),
                     }),
-                    args: Vec::new(),
-                },
-            }],
-        };
-        assert_eq!(expected, ast)
-    }
-
-    #[test]
-    fn function_application_single_arg() {
-        let ast = parse(token_stream("do_something(\"a\");"));
-        let expected = UntypedProgram {
-            stmts: vec![Stmt::Expr {
-                e: Expr::FunctionApplication {
-                    callee: Box::new(Expr::Identifier {
-                        name: Token::identifier("do_something"),
-                    }),
-                    args: vec![Expr::Literal {
-                        l: Literal::new("a"),
-                    }],
+                    args,
                 },
             }],
         };

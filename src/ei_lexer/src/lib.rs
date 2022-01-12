@@ -21,6 +21,7 @@ pub enum TokenKind {
     LeftParen,    // (
     RightParen,   // )
     Dot,          // .
+    Comma,        // ,
     Colon,        // :
     SemiColon,    // ;
     Bang,         // !
@@ -101,10 +102,8 @@ impl<'src> Iterator for TokenStream<'src> {
 
 impl<'src> TokenStream<'src> {
     fn next_token_kind(&mut self) -> Option<TokenKind> {
-        self.current_token_start = self.current_token_start + self.current_token_size;
-        self.current_token_size = 0;
-
-        self.consume_until(|c| !c.is_whitespace());
+        self.prepare_for_next_token();
+        self.skip_whitespace();
 
         let next = self.src.next();
         self.current_token_size += 1;
@@ -118,6 +117,7 @@ impl<'src> TokenStream<'src> {
                 '(' => LeftParen,
                 ')' => RightParen,
                 '.' => Dot,
+                ',' => Comma,
                 ':' => Colon,
                 ';' => SemiColon,
                 '!' if self.consume('=') => BangEqual,
@@ -140,6 +140,21 @@ impl<'src> TokenStream<'src> {
                 _ => Unknown,
             }
         })
+    }
+
+    fn prepare_for_next_token(&mut self) {
+        self.current_token_start = self.current_token_start + self.current_token_size;
+        self.current_token_size = 0;
+    }
+
+    // Assumes that we've read a complete token & wish to skip
+    // all whitespace until the next token. As such it bumps
+    // current_token_start on each skipped char.
+    fn skip_whitespace(&mut self) {
+        while self.src.peek().map_or(false, |c| c.is_whitespace()) {
+            self.src.next();
+            self.current_token_start += 1;
+        }
     }
 
     // Assumes we have already read a '"' and then
@@ -221,6 +236,7 @@ mod tests {
         [ "("        , TokenKind::LeftParen    ]
         [ ")"        , TokenKind::RightParen   ]
         [ "."        , TokenKind::Dot          ]
+        [ ","        , TokenKind::Comma        ]
         [ ":"        , TokenKind::Colon        ]
         [ ";"        , TokenKind::SemiColon    ]
         [ "!"        , TokenKind::Bang         ]
@@ -293,6 +309,27 @@ mod tests {
             }
             None => panic!("No token returned for input {:?}", input),
         }
+    }
+
+    #[test]
+    fn correctly_skips_whitespace() {
+        let input = "\"b\", \"c\"";
+        let tokens: Vec<Token> = token_stream(input).collect();
+        let expected = vec![
+            Token {
+                kind: TokenKind::String("b".into()),
+                lexeme: "\"b\"".into(),
+            },
+            Token {
+                kind: TokenKind::Comma,
+                lexeme: ",".into(),
+            },
+            Token {
+                kind: TokenKind::String("c".into()),
+                lexeme: "\"c\"".into(),
+            },
+        ];
+        assert_eq!(expected, tokens);
     }
 
     mod util {
