@@ -2,4 +2,4 @@ fn hello(name: String) -> String {
     "Hello, ".appending(name)
 }
 
-print_ln(hello("Ei"))
+print_ln(hello("Ei"));

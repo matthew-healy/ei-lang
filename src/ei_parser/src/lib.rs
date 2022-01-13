@@ -2,8 +2,14 @@ use ei_lexer::*;
 use std::iter::Peekable;
 
 #[derive(Debug, PartialEq)]
-struct UntypedProgram {
+pub struct UntypedProgram {
     stmts: Vec<Stmt>,
+}
+
+impl UntypedProgram {
+    pub fn ast_debug_string(&self) -> String {
+        format!("{:?}", self.stmts)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,7 +47,7 @@ impl<T: Into<String>> From<T> for Literal {
     }
 }
 
-fn parse<'src>(stream: TokenStream<'src>) -> UntypedProgram {
+pub fn parse<'src>(stream: TokenStream<'src>) -> UntypedProgram {
     let mut parser = Parser::new(stream);
     parser.parse_program()
 }
