@@ -1,31 +1,45 @@
+use clap::{AppSettings, Parser};
 use ei_lexer::*;
 use ei_parser::*;
 
+#[derive(Parser)]
+#[clap(
+    name = "The Ei Programming Language",
+    author = "Matthew Healy",
+    version = "0.0.1",
+    about = "The larval form of a dependently-typed scripting language.",
+    long_about = "Ei is currently just a lexer & parser, \
+                  but maybe one day it will be dependently-typed \
+                  interpreted scripting language."
+)]
+#[clap(global_setting(AppSettings::PropagateVersion))]
+#[clap(global_setting(AppSettings::UseLongFormatForHelpSubcommand))]
+struct Cli {
+    #[clap(subcommand)]
+    invocation: Invocation,
+}
+
+#[derive(clap::Subcommand)]
 enum Invocation {
+    #[clap(
+        about = "Dump a pretty-printed debug description of the parsed, untyped AST of the provided .ei file."
+    )]
+    DumpUntypedAst { path: std::path::PathBuf },
+    #[clap(about = "Typecheck & run the provided .ei file.")]
     Run { path: std::path::PathBuf },
 }
 
-impl Invocation {
-    fn parse(cmd: &str) -> Option<Invocation> {
-        match cmd {
-            "run" => {
-                let path = std::env::args()
-                    .nth(2)
-                    .expect("The run command requires a .ei file to function.");
-                let path = std::path::PathBuf::from(path);
-                Some(Invocation::Run { path })
-            }
-            _ => None,
-        }
-    }
-}
-
 fn main() {
-    let command = std::env::args().nth(1).expect("No first arg!");
-    let invocation = Invocation::parse(&command);
-    match invocation {
-        None => panic!("No such command: {}", command),
-        Some(Invocation::Run { path }) => {
+    let cli = Cli::parse();
+
+    match cli.invocation {
+        Invocation::DumpUntypedAst { path } => {
+            let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
+            let tokens = token_stream(contents.as_str());
+            let program = parse(tokens);
+            println!("{}", program.ast_debug_string());
+        }
+        Invocation::Run { path } => {
             // TODO: don't read the whole file in at once.
             let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
             let tokens = token_stream(contents.as_str());
@@ -33,4 +47,10 @@ fn main() {
             println!("{}", program.ast_debug_string());
         }
     }
+}
+
+#[test]
+fn verify_clap_config() {
+    use clap::IntoApp;
+    Cli::into_app().debug_assert()
 }

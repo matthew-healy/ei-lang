@@ -8,7 +8,7 @@ pub struct UntypedProgram {
 
 impl UntypedProgram {
     pub fn ast_debug_string(&self) -> String {
-        format!("{:?}", self.stmts)
+        format!("{:#?}", self)
     }
 }
 
