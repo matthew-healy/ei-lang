@@ -22,9 +22,9 @@ struct Cli {
 #[derive(clap::Subcommand)]
 enum Invocation {
     #[clap(
-        about = "Dump a pretty-printed debug description of the parsed, untyped AST of the provided .ei file."
+        about = "Dump a pretty-printed debug description of the abstract syntax tree of the provided .ei file."
     )]
-    DumpUntypedAst { path: std::path::PathBuf },
+    DumpAst { path: std::path::PathBuf },
     #[clap(about = "Typecheck & run the provided .ei file.")]
     Run { path: std::path::PathBuf },
 }
@@ -33,14 +33,14 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.invocation {
-        Invocation::DumpUntypedAst { path } => {
+        Invocation::DumpAst { path } => {
+            // TODO: don't read the whole file in at once.
             let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
             let tokens = token_stream(contents.as_str());
             let program = parse(tokens);
             println!("{}", program.ast_debug_string());
         }
         Invocation::Run { path } => {
-            // TODO: don't read the whole file in at once.
             let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
             let tokens = token_stream(contents.as_str());
             let program = parse(tokens);
