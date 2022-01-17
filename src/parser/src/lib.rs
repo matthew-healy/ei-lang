@@ -1,51 +1,7 @@
-use lexer::{Token, TokenKind, TokenStream};
+use ast::{Expr, Literal, Stmt, UntypedProgram};
+use lexer::TokenStream;
 use std::iter::Peekable;
-
-#[derive(Debug, PartialEq)]
-pub struct UntypedProgram {
-    stmts: Vec<Stmt>,
-}
-
-impl UntypedProgram {
-    pub fn ast_debug_string(&self) -> String {
-        format!("{:#?}", self)
-    }
-}
-
-#[derive(Debug, PartialEq)]
-enum Stmt {
-    Expr { e: Expr },
-}
-
-#[derive(Debug, PartialEq)]
-enum Expr {
-    Identifier { name: Token },
-    Literal { l: Literal },
-    FunctionApplication { callee: Box<Expr>, args: Vec<Expr> },
-}
-
-impl<T: Into<Literal>> From<T> for Expr {
-    fn from(l: T) -> Expr {
-        Expr::Literal { l: l.into() }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-enum Literal {
-    String(String),
-}
-
-impl Literal {
-    fn new<T: Into<Literal>>(t: T) -> Literal {
-        t.into()
-    }
-}
-
-impl<T: Into<String>> From<T> for Literal {
-    fn from(s: T) -> Literal {
-        Literal::String(s.into())
-    }
-}
+use token::*;
 
 pub fn parse<'src>(stream: TokenStream<'src>) -> UntypedProgram {
     let mut parser = Parser::new(stream);

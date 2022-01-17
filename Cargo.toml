@@ -1,8 +1,10 @@
 [workspace]
 
 members = [
+    "src/ast",
     "src/cmd",
+    "src/interpreter",
     "src/lexer",
     "src/parser",
-    "src/interpreter",
+    "src/token",
 ]

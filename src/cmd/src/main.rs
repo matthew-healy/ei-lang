@@ -38,13 +38,13 @@ fn main() {
             let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
             let tokens = token_stream(contents.as_str());
             let program = parse(tokens);
-            println!("{}", program.ast_debug_string());
+            println!("{}", program.pretty_printed());
         }
         Invocation::Run { path } => {
             let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
             let tokens = token_stream(contents.as_str());
             let program = parse(tokens);
-            println!("{}", program.ast_debug_string());
+            println!("{}", program.pretty_printed());
         }
     }
 }
