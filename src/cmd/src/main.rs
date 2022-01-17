@@ -1,6 +1,6 @@
 use clap::{AppSettings, Parser};
-use ei_lexer::*;
-use ei_parser::*;
+use lexer::*;
+use parser::*;
 
 #[derive(Parser)]
 #[clap(

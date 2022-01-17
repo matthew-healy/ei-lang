@@ -1,4 +1,4 @@
-use ei_lexer::*;
+use lexer::{Token, TokenKind, TokenStream};
 use std::iter::Peekable;
 
 #[derive(Debug, PartialEq)]
@@ -144,6 +144,7 @@ impl<T: Iterator<Item = Token>> Parser<Peekable<T>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lexer::token_stream;
     use test_with_parameters::*;
 
     #[test]

@@ -1,11 +1,12 @@
 [package]
-name = "ei_cmd"
+name = "lexer"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.0", features = ["derive"] }
-ei_lexer = { path = "../ei_lexer" }
-ei_parser = { path = "../ei_parser" }
+phf = { version = "0.8", features = ["macros"] }
+
+[dev-dependencies]
+test_with_parameters = "0.1.0"

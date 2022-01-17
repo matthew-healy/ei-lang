@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "src/ei_cmd",
-    "src/ei_lexer",
-    "src/ei_parser",
+    "src/cmd",
+    "src/lexer",
+    "src/parser",
 ]

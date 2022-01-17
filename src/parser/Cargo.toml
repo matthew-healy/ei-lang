@@ -1,13 +1,12 @@
 [package]
-name = "ei_lexer"
+name = "parser"
 version = "0.1.0"
-authors = ["Matthew Healy <matthew.healy@soundcloud.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-phf = { version = "0.8", features = ["macros"] }
+lexer = { path = "../lexer" }
 
 [dev-dependencies]
 test_with_parameters = "0.1.0"
