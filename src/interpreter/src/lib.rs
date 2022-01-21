@@ -3,6 +3,11 @@ use std::{cell::RefCell, collections::HashMap, io::Write, rc::Rc};
 use ast::{Expr, ExprVisitor, Literal, UntypedProgram};
 use token::Token;
 
+pub fn interpret<W: Write + 'static>(p: UntypedProgram, out: W) {
+    let mut interpreter = Interpreter::new(Rc::new(RefCell::new(out)));
+    interpreter.interpret(p);
+}
+
 struct NativeFn {
     body: Box<dyn FnMut(&[Value]) -> Value>,
 }

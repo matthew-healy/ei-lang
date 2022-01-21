@@ -1,4 +1,5 @@
 use clap::{AppSettings, Parser};
+use interpreter::interpret;
 use lexer::*;
 use parser::*;
 
@@ -44,7 +45,7 @@ fn main() {
             let contents = std::fs::read_to_string(path).expect("Could not read provided file.");
             let tokens = token_stream(contents.as_str());
             let program = parse(tokens);
-            println!("{}", program.pretty_printed());
+            interpret(program, std::io::stdout());
         }
     }
 }
